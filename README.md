@@ -111,7 +111,10 @@ GraphLang/
 
 ---
 
-## 👥 Integrantes y Materia
-* **Materia**: Compiladores
-* **Año**: 2026
+## 👥 Integrantes
+
+* **Figueroa Santiago**
+* **Rios Matias**
+* **Zalazar Lucas**
+
 
