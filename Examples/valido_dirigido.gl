@@ -1,0 +1,15 @@
+// Ejemplo de Grafo Dirigido con Pesos
+GRAFO RedTransporte DIRIGIDO {
+    NODOS Central, Norte, Sur, Este, Oeste;
+
+    ARISTA Central -> Norte PESO 10;
+    ARISTA Central -> Sur PESO 15;
+    ARISTA Norte -> Este PESO 5;
+    ARISTA Sur -> Oeste PESO 8;
+    ARISTA Este -> Oeste PESO 12;
+}
+
+MOSTRAR RedTransporte;
+RECORRER RedTransporte DESDE Central BFS;
+RECORRER RedTransporte DESDE Central DFS;
+

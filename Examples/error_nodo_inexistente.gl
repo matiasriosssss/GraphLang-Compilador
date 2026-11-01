@@ -1,0 +1,11 @@
+// Caso de prueba: Aristas con nodos no declarados
+GRAFO RedInvalida DIRIGIDO {
+    NODOS A, B;
+
+    ARISTA A -> C; // Error: nodo C no existe
+    ARISTA Z -> B; // Error: nodo Z no existe
+}
+
+MOSTRAR RedInexistente; // Error: grafo no declarado
+
+ 

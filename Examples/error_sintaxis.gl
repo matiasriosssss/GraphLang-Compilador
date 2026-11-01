@@ -1,0 +1,6 @@
+// Error sintáctico: falta ';' y palabra clave mal escrita
+GRAFO RedSintaxis DIRIGIDO {
+    NODOS A, B // Falta punto y coma
+    ARISTA A -> B
+}
+

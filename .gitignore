@@ -1,0 +1,8 @@
+bin/
+obj/
+.appdata/
+.nuget/
+*.html
+*.dot
+*.png
+

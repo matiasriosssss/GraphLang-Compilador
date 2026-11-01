@@ -1,0 +1,344 @@
+using System;
+using GraphLang.Models;
+using GraphLang.Semantics;
+
+
+
+using System;
+
+namespace GraphLang.Generated {
+
+
+
+public class Parser {
+	public const int _EOF = 0;
+	public const int _ident = 1;
+	public const int _number = 2;
+	public const int maxT = 25;
+
+	const bool _T = true;
+	const bool _x = false;
+	const int minErrDist = 2;
+	
+	public Scanner scanner;
+	public Errors  errors;
+
+	public Token t;    // last recognized token
+	public Token la;   // lookahead token
+	int errDist = minErrDist;
+
+public GraphManager Manager = new GraphManager();
+
+
+
+	public Parser(Scanner scanner) {
+		this.scanner = scanner;
+		errors = new Errors();
+	}
+
+	void SynErr (int n) {
+		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
+		errDist = 0;
+	}
+
+	public void SemErr (string msg) {
+		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
+		errDist = 0;
+	}
+	
+	void Get () {
+		for (;;) {
+			t = la;
+			la = scanner.Scan();
+			if (la.kind <= maxT) { ++errDist; break; }
+
+			la = t;
+		}
+	}
+	
+	void Expect (int n) {
+		if (la.kind==n) Get(); else { SynErr(n); }
+	}
+	
+	bool StartOf (int s) {
+		return set[s, la.kind];
+	}
+	
+	void ExpectWeak (int n, int follow) {
+		if (la.kind == n) Get();
+		else {
+			SynErr(n);
+			while (!StartOf(follow)) Get();
+		}
+	}
+
+
+	bool WeakSeparator(int n, int syFol, int repFol) {
+		int kind = la.kind;
+		if (kind == n) {Get(); return true;}
+		else if (StartOf(repFol)) {return false;}
+		else {
+			SynErr(n);
+			while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
+				Get();
+				kind = la.kind;
+			}
+			return StartOf(syFol);
+		}
+	}
+
+	
+	void GraphLang() {
+		while (StartOf(1)) {
+			if (la.kind == 3) {
+				GraphDecl();
+			} else {
+				Statement();
+			}
+		}
+	}
+
+	void GraphDecl() {
+		string gName; 
+		GraphType gType = GraphType.Directed; 
+		Graph currentGraph = null;
+		int line = t.line;
+		int col = t.col;
+		
+		Expect(3);
+		Ident(out gName);
+		if (la.kind == 4) {
+			Get();
+			gType = GraphType.Directed; 
+		} else if (la.kind == 5) {
+			Get();
+			gType = GraphType.Undirected; 
+		} else SynErr(26);
+		currentGraph = Manager.DeclareGraph(gName, gType, line, col); 
+		
+		Expect(6);
+		while (la.kind == 8 || la.kind == 11) {
+			GraphElement(currentGraph);
+		}
+		Expect(7);
+	}
+
+	void Statement() {
+		string gName; 
+		string sNode, eNode; 
+		string algo = "BFS"; 
+		int line = t.line;
+		int col = t.col;
+		
+		if (la.kind == 15) {
+			Get();
+			Ident(out gName);
+			Expect(10);
+			Manager.ValidateGraphExists(gName, line, col);
+			Manager.AddCommand(new ShowCommand(gName, line, col)); 
+			
+		} else if (la.kind == 16) {
+			Get();
+			Ident(out gName);
+			Expect(17);
+			Ident(out sNode);
+			if (la.kind == 18) {
+				Get();
+				algo = "BFS"; 
+			} else if (la.kind == 19) {
+				Get();
+				algo = "DFS"; 
+			} else SynErr(27);
+			Expect(10);
+			if (Manager.ValidateGraphExists(gName, line, col))
+			{
+			   Manager.ValidateNodeExistsInGraph(gName, sNode, line, col);
+			}
+			Manager.AddCommand(new TraverseCommand(gName, sNode, algo, line, col)); 
+			
+		} else if (la.kind == 20 || la.kind == 21) {
+			if (la.kind == 20) {
+				Get();
+			} else {
+				Get();
+			}
+			Ident(out gName);
+			Expect(17);
+			Ident(out sNode);
+			Expect(22);
+			Ident(out eNode);
+			Expect(10);
+			if (Manager.ValidateGraphExists(gName, line, col))
+			{
+			   Manager.ValidateNodeExistsInGraph(gName, sNode, line, col);
+			   Manager.ValidateNodeExistsInGraph(gName, eNode, line, col);
+			}
+			Manager.AddCommand(new DijkstraCommand(gName, sNode, eNode, line, col)); 
+			
+		} else if (la.kind == 23 || la.kind == 24) {
+			if (la.kind == 23) {
+				Get();
+			} else {
+				Get();
+			}
+			Ident(out gName);
+			Expect(10);
+			Manager.ValidateGraphExists(gName, line, col);
+			Manager.AddCommand(new DetectCyclesCommand(gName, line, col)); 
+			
+		} else SynErr(28);
+	}
+
+	void Ident(out string name) {
+		Expect(1);
+		name = t.val; 
+	}
+
+	void GraphElement(Graph currentGraph) {
+		if (la.kind == 8) {
+			NodeDecl(currentGraph);
+		} else if (la.kind == 11) {
+			EdgeDecl(currentGraph);
+		} else SynErr(29);
+	}
+
+	void NodeDecl(Graph currentGraph) {
+		string nName; 
+		Expect(8);
+		Ident(out nName);
+		if (currentGraph != null) 
+		   Manager.AddNodeToGraph(currentGraph, nName, t.line, t.col); 
+		
+		while (la.kind == 9) {
+			Get();
+			Ident(out nName);
+			if (currentGraph != null) 
+			   Manager.AddNodeToGraph(currentGraph, nName, t.line, t.col); 
+			
+		}
+		Expect(10);
+	}
+
+	void EdgeDecl(Graph currentGraph) {
+		string src, dst; 
+		bool isDirected = true; 
+		int weight = 1; 
+		int line = t.line;
+		int col = t.col;
+		
+		Expect(11);
+		Ident(out src);
+		if (la.kind == 12) {
+			Get();
+			isDirected = true; 
+		} else if (la.kind == 13) {
+			Get();
+			isDirected = false; 
+		} else SynErr(30);
+		Ident(out dst);
+		if (la.kind == 14) {
+			Get();
+			Number(out weight);
+		}
+		Expect(10);
+		if (currentGraph != null)
+		{
+		   Manager.AddEdgeToGraph(currentGraph, src, dst, isDirected, weight, line, col);
+		}
+		
+	}
+
+	void Number(out int val) {
+		Expect(2);
+		val = int.Parse(t.val); 
+	}
+
+
+
+	public void Parse() {
+		la = new Token();
+		la.val = "";		
+		Get();
+		GraphLang();
+		Expect(0);
+
+	}
+	
+	static readonly bool[,] set = {
+		{_T,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x},
+		{_x,_x,_x,_T, _x,_x,_x,_x, _x,_x,_x,_x, _x,_x,_x,_T, _T,_x,_x,_x, _T,_T,_x,_T, _T,_x,_x}
+
+	};
+} // end Parser
+
+
+public class Errors {
+	public int count = 0;                                    // number of errors detected
+	public System.IO.TextWriter errorStream = Console.Out;   // error messages go to this stream
+	public string errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
+
+	public virtual void SynErr (int line, int col, int n) {
+		string s;
+		switch (n) {
+			case 0: s = "EOF expected"; break;
+			case 1: s = "ident expected"; break;
+			case 2: s = "number expected"; break;
+			case 3: s = "\"GRAFO\" expected"; break;
+			case 4: s = "\"DIRIGIDO\" expected"; break;
+			case 5: s = "\"NO_DIRIGIDO\" expected"; break;
+			case 6: s = "\"{\" expected"; break;
+			case 7: s = "\"}\" expected"; break;
+			case 8: s = "\"NODOS\" expected"; break;
+			case 9: s = "\",\" expected"; break;
+			case 10: s = "\";\" expected"; break;
+			case 11: s = "\"ARISTA\" expected"; break;
+			case 12: s = "\"->\" expected"; break;
+			case 13: s = "\"--\" expected"; break;
+			case 14: s = "\"PESO\" expected"; break;
+			case 15: s = "\"MOSTRAR\" expected"; break;
+			case 16: s = "\"RECORRER\" expected"; break;
+			case 17: s = "\"DESDE\" expected"; break;
+			case 18: s = "\"BFS\" expected"; break;
+			case 19: s = "\"DFS\" expected"; break;
+			case 20: s = "\"CAMINO\" expected"; break;
+			case 21: s = "\"DIJKSTRA\" expected"; break;
+			case 22: s = "\"HASTA\" expected"; break;
+			case 23: s = "\"CICLOS\" expected"; break;
+			case 24: s = "\"DETECTAR_CICLOS\" expected"; break;
+			case 25: s = "??? expected"; break;
+			case 26: s = "invalid GraphDecl"; break;
+			case 27: s = "invalid Statement"; break;
+			case 28: s = "invalid Statement"; break;
+			case 29: s = "invalid GraphElement"; break;
+			case 30: s = "invalid EdgeDecl"; break;
+
+			default: s = "error " + n; break;
+		}
+		errorStream.WriteLine(errMsgFormat, line, col, s);
+		count++;
+	}
+
+	public virtual void SemErr (int line, int col, string s) {
+		errorStream.WriteLine(errMsgFormat, line, col, s);
+		count++;
+	}
+	
+	public virtual void SemErr (string s) {
+		errorStream.WriteLine(s);
+		count++;
+	}
+	
+	public virtual void Warning (int line, int col, string s) {
+		errorStream.WriteLine(errMsgFormat, line, col, s);
+	}
+	
+	public virtual void Warning(string s) {
+		errorStream.WriteLine(s);
+	}
+} // Errors
+
+
+public class FatalError: Exception {
+	public FatalError(string m): base(m) {}
+}
+}

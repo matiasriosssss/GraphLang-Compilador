@@ -1,0 +1,7 @@
+// Caso de prueba: Operador incompatible con el tipo de grafo
+GRAFO MiGrafo NO_DIRIGIDO {
+    NODOS A, B;
+
+    ARISTA A -> B; // Error semántico: se usa '->' en un grafo NO_DIRIGIDO
+}
+

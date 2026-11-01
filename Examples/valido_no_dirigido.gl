@@ -1,0 +1,14 @@
+// Ejemplo de Grafo No Dirigido (Red Social)
+GRAFO RedAmigo111 NO_DIRIGIDO {
+    NODOS Juan, Maria, Pedro, Sofia, Lucas;
+
+    ARISTA Juan -- Maria;
+    ARISTA Maria -- Pedro;
+    ARISTA Pedro -- Sofia;
+    ARISTA Sofia -- Lucas;
+    ARISTA Lucas -- Juan;
+}
+
+MOSTRAR RedAmigo111;
+RECORRER RedAmigo111 DESDE Juan BFS;
+

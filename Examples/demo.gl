@@ -1,0 +1,15 @@
+// GraphLang Demo Principal Completa
+GRAFO Red DIRIGIDO {
+    NODOS A, B, C, D;
+
+    ARISTA A -> B PESO 5;
+    ARISTA A -> C PESO 2;
+    ARISTA B -> D PESO 4;
+    ARISTA C -> D PESO 1;
+}
+
+MOSTRAR Red;
+RECORRER Red DESDE A BFS;
+RECORRER Red DESDE A DFS;
+CAMINO Red DESDE A HASTA D;
+CICLOS Red;

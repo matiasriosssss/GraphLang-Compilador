@@ -1,0 +1,148 @@
+using System;
+using GraphLang.Models;
+using GraphLang.Semantics;
+
+COMPILER GraphLang
+
+public GraphManager Manager = new GraphManager();
+
+CHARACTERS
+    letter = 'A'..'Z' + 'a'..'z' + '_'.
+    digit  = '0'..'9'.
+
+TOKENS
+    ident  = letter { letter | digit }.
+    number = digit { digit }.
+
+COMMENTS FROM "//" TO "\n"
+COMMENTS FROM "/*" TO "*/"
+
+IGNORE '\r' + '\n' + '\t'
+
+PRODUCTIONS
+
+GraphLang = { GraphDecl | Statement } .
+
+GraphDecl 
+(. 
+    string gName; 
+    GraphType gType = GraphType.Directed; 
+    Graph currentGraph = null;
+    int line = t.line;
+    int col = t.col;
+.)
+=
+    "GRAFO" 
+    Ident<out gName> 
+    ( "DIRIGIDO"    (. gType = GraphType.Directed; .)
+    | "NO_DIRIGIDO" (. gType = GraphType.Undirected; .)
+    )
+    (. 
+        currentGraph = Manager.DeclareGraph(gName, gType, line, col); 
+    .)
+    "{" 
+        { GraphElement<currentGraph> } 
+    "}" .
+
+GraphElement<Graph currentGraph>
+=
+      NodeDecl<currentGraph>
+    | EdgeDecl<currentGraph>
+    .
+
+NodeDecl<Graph currentGraph>
+(. string nName; .)
+=
+    "NODOS" 
+    Ident<out nName> 
+    (. 
+        if (currentGraph != null) 
+            Manager.AddNodeToGraph(currentGraph, nName, t.line, t.col); 
+    .)
+    { 
+        "," 
+        Ident<out nName> 
+        (. 
+            if (currentGraph != null) 
+                Manager.AddNodeToGraph(currentGraph, nName, t.line, t.col); 
+        .)
+    } 
+    ";" .
+
+EdgeDecl<Graph currentGraph>
+(. 
+    string src, dst; 
+    bool isDirected = true; 
+    int weight = 1; 
+    int line = t.line;
+    int col = t.col;
+.)
+=
+    "ARISTA" 
+    Ident<out src> 
+    ( "->" (. isDirected = true; .)
+    | "--" (. isDirected = false; .)
+    )
+    Ident<out dst>
+    [ 
+        "PESO" 
+        Number<out weight> 
+    ]
+    ";"
+    (.
+        if (currentGraph != null)
+        {
+            Manager.AddEdgeToGraph(currentGraph, src, dst, isDirected, weight, line, col);
+        }
+    .)
+    .
+
+Statement
+(. 
+    string gName; 
+    string sNode, eNode; 
+    string algo = "BFS"; 
+    int line = t.line;
+    int col = t.col;
+.)
+=
+      "MOSTRAR" Ident<out gName> ";"
+      (. 
+          Manager.ValidateGraphExists(gName, line, col);
+          Manager.AddCommand(new ShowCommand(gName, line, col)); 
+      .)
+    | "RECORRER" Ident<out gName> "DESDE" Ident<out sNode> ( "BFS" (. algo = "BFS"; .) | "DFS" (. algo = "DFS"; .) ) ";"
+      (. 
+          if (Manager.ValidateGraphExists(gName, line, col))
+          {
+              Manager.ValidateNodeExistsInGraph(gName, sNode, line, col);
+          }
+          Manager.AddCommand(new TraverseCommand(gName, sNode, algo, line, col)); 
+      .)
+    | ( "CAMINO" | "DIJKSTRA" ) Ident<out gName> "DESDE" Ident<out sNode> "HASTA" Ident<out eNode> ";"
+      (. 
+          if (Manager.ValidateGraphExists(gName, line, col))
+          {
+              Manager.ValidateNodeExistsInGraph(gName, sNode, line, col);
+              Manager.ValidateNodeExistsInGraph(gName, eNode, line, col);
+          }
+          Manager.AddCommand(new DijkstraCommand(gName, sNode, eNode, line, col)); 
+      .)
+    | ( "CICLOS" | "DETECTAR_CICLOS" ) Ident<out gName> ";"
+      (. 
+          Manager.ValidateGraphExists(gName, line, col);
+          Manager.AddCommand(new DetectCyclesCommand(gName, line, col)); 
+      .)
+    .
+
+Ident<out string name>
+=
+    ident (. name = t.val; .)
+    .
+
+Number<out int val>
+=
+    number (. val = int.Parse(t.val); .)
+    .
+
+END GraphLang.

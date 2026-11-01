@@ -1,0 +1,11 @@
+// Caso de prueba: Errores de duplicación
+GRAFO Red1 DIRIGIDO {
+    NODOS A, B, A; // Error: nodo A duplicado
+    ARISTA A -> B;
+}
+
+GRAFO Red1 NO_DIRIGIDO { // Error: grafo Red1 duplicado
+    NODOS X, Y;
+    ARISTA X -- Y;
+}
+
